@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hydration Calculator</title>
+  <style>
+    :root{
+      --bg:#0b0f13;
+      --panel:#121820;
+      --ink:#e9eef5;
+      --muted:#aab7c7;
+      --accent:#6ee7b7;
+      --line:#1f2a36;
+      --warn:#ffd166;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:linear-gradient(180deg, #0b0f13 0%, #0f1620 100%);
+      color:var(--ink);
+      font-family:ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      line-height:1.5;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    .wrap{
+      max-width:920px;
+      margin:32px auto 48px;
+      padding:0 16px;
+    }
+    header{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      margin-bottom:16px;
+    }
+    .badge{
+      display:inline-block;
+      font-size:12px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:#0b0f13;
+      background:var(--accent);
+      padding:6px 10px;
+      border-radius:999px;
+      font-weight:700;
+      width:max-content;
+    }
+    h1{
+      font-size:clamp(24px, 4.5vw, 36px);
+      margin:0;
+    }
+    p.lead{
+      color:var(--muted);
+      margin-top:6px;
+      max-width:70ch;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:1.1fr 1fr;
+      gap:20px;
+    }
+    @media (max-width:860px){
+      .grid{grid-template-columns:1fr}
+    }
+    .card{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:18px;
+      box-shadow:0 0 0 1px rgba(255,255,255,0.02), 0 12px 40px rgba(0,0,0,0.35);
+    }
+    .card h2{
+      font-size:18px;
+      margin:0 0 12px;
+    }
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .row-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .row-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    @media (max-width:600px){
+      .row,.row-3,.row-4{grid-template-columns:1fr}
+    }
+    label{font-size:13px;color:var(--muted);display:block;margin:8px 0 6px}
+    input[type="number"], select{
+      width:100%;
+      padding:12px 12px;
+      background:#0c1219;
+      color:var(--ink);
+      border:1px solid var(--line);
+      border-radius:12px;
+      outline:none;
+    }
+    input[type="number"]:focus, select:focus{border-color:#2b3b4f;box-shadow:0 0 0 4px rgba(110,231,183,0.08)}
+    .toggle{
+      display:flex;
+      gap:8px;
+      padding:6px;
+      background:#0c1219;
+      border:1px solid var(--line);
+      border-radius:12px;
+      width:max-content;
+    }
+    .toggle button{
+      appearance:none;
+      border:0;
+      background:transparent;
+      color:var(--muted);
+      font-weight:700;
+      padding:10px 14px;
+      border-radius:8px;
+      cursor:pointer;
+    }
+    .toggle button.active{
+      background:var(--accent);
+      color:#0b0f13;
+    }
+    .hint{font-size:12px;color:var(--muted);margin-top:6px}
+    .out{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .stat{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:12px 14px;
+      border:1px dashed #243244;
+      border-radius:12px;
+      background:#0d141c;
+    }
+    .stat .k{color:var(--muted);font-size:13px}
+    .stat .v{font-weight:800;font-size:20px}
+    .note{
+      display:flex;gap:10px;align-items:flex-start;
+      padding:10px 12px;border-left:3px solid var(--warn);
+      background:#1a1d10;border-radius:8px;
+      color:#eae7d6;
+      font-size:13px;
+    }
+    .hr{height:1px;background:var(--line);margin:10px 0 8px}
+    footer{margin-top:28px;color:var(--muted);font-size:12px}
+    .small{font-size:12px;color:var(--muted)}
+    .pill{
+      display:inline-block;padding:4px 8px;border:1px solid var(--line);border-radius:999px;font-size:12px;color:var(--muted)
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <span class="badge">Free Tool</span>
+      <h1>Hydration Calculator</h1>
+      <p class="lead">A quick, no-frills way to estimate daily fluid needs based on body mass, training time, and climate. Uses conservative, athlete-friendly heuristics—then nudges electrolytes when sweat losses climb.</p>
+      <div class="toggle" role="tablist" aria-label="Units">
+        <button id="btnMetric" class="active" aria-selected="true">Metric</button>
+        <button id="btnImperial" aria-selected="false">US/Imperial</button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Inputs</h2>
+        <div class="row">
+          <div>
+            <label for="weight">Body mass <span class="pill" id="unitWeight">kg</span></label>
+            <input id="weight" type="number" min="30" max="200" step="0.1" value="70" inputmode="decimal" />
+            <div class="hint">Tip: use morning bodyweight.</div>
+          </div>
+          <div>
+            <label for="minutes">Planned training today (minutes)</label>
+            <input id="minutes" type="number" min="0" max="300" step="5" value="60" inputmode="numeric" />
+            <div class="hint">Include warm-up/cooldown.</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="intensity">Training intensity</label>
+            <select id="intensity">
+              <option value="low">Low (Z1–Z2 / easy)</option>
+              <option value="mod" selected>Moderate (steady / tempo)</option>
+              <option value="high">High (intervals/HIIT)</option>
+            </select>
+          </div>
+          <div>
+            <label for="climate">Environment</label>
+            <select id="climate">
+              <option value="cool">Cool/Dry</option>
+              <option value="temperate" selected>Temperate</option>
+              <option value="hot">Hot</option>
+              <option value="hothumid">Hot & Humid</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="caffeine">High caffeine today? (&ge; 300 mg)</label>
+            <select id="caffeine">
+              <option value="no" selected>No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+          <div>
+            <label for="illness">Illness / GI upset</label>
+            <select id="illness">
+              <option value="no" selected>No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+        <div class="small">Heuristics: baseline 30 mL/kg/day; exercise 360–720 mL/hr by intensity; climate: +0–25%; caffeine +200 mL (optional); illness +500 mL plus electrolytes.</div>
+      </section>
+
+      <section class="card">
+        <h2>Results</h2>
+        <div class="out">
+          <div class="stat">
+            <div class="k">Daily target</div>
+            <div class="v"><span id="dailyL">—</span> <span id="unitVol">L</span></div>
+          </div>
+          <div class="stat">
+            <div class="k">During training</div>
+            <div class="v"><span id="perHour">—</span> <span id="unitVol">/hr</span></div>
+          </div>
+          <div class="stat">
+            <div class="k">Post‑workout top‑up</div>
+            <div class="v"><span id="postTopup">—</span> <span id="unitVol"></span></div>
+          </div>
+          <div class="note">
+            <div>⚠️</div>
+            <div>
+              For sessions &gt; 60–75 min or in heat, include electrolytes (aim 300–600 mg sodium/hour; heavy sweaters 800–1,000 mg). Avoid overdrinking plain water.
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer>
+      <p class="small">This tool provides estimates for healthy adults. Not medical advice. If you have kidney/cardiac conditions or take diuretics/NSAIDs, consult a clinician. Consider a <em>sweat test</em> (pre/post weigh-in) to personalize.</p>
+    </footer>
+  </div>
+
+  <script>
+    const els = {
+      btnMetric: document.getElementById('btnMetric'),
+      btnImperial: document.getElementById('btnImperial'),
+      unitWeight: document.getElementById('unitWeight'),
+      unitVols: document.querySelectorAll('#unitVol'),
+      weight: document.getElementById('weight'),
+      minutes: document.getElementById('minutes'),
+      intensity: document.getElementById('intensity'),
+      climate: document.getElementById('climate'),
+      caffeine: document.getElementById('caffeine'),
+      illness: document.getElementById('illness'),
+      dailyL: document.getElementById('dailyL'),
+      perHour: document.getElementById('perHour'),
+      postTopup: document.getElementById('postTopup')
+    };
+
+    let metric = true;
+
+    function toKg(val){
+      return metric ? val : val * 0.45359237;
+    }
+    function fromLiters(val){
+      return metric ? val : val * 33.814; // to fluid ounces
+    }
+    function formatVol(val){
+      if(metric){
+        return (Math.round(val * 100) / 100).toFixed(2);
+      }else{
+        // in oz, show whole number
+        return Math.round(val).toString();
+      }
+    }
+
+    function recalc(){
+      const weightInput = parseFloat(els.weight.value || '0');
+      const minutes = parseFloat(els.minutes.value || '0');
+      const wkg = toKg(weightInput);
+
+      // Heuristics
+      const baseline_ml = wkg * 30; // 30 mL/kg/day
+      let perMin_ml = 6; // low
+      if (els.intensity.value === 'mod') perMin_ml = 8; // 480 mL/hr
+      if (els.intensity.value === 'high') perMin_ml = 12; // 720 mL/hr
+      let exercise_ml = minutes * perMin_ml;
+
+      let climateMult = 1.0;
+      if (els.climate.value === 'temperate') climateMult = 1.05;
+      if (els.climate.value === 'hot') climateMult = 1.15;
+      if (els.climate.value === 'hothumid') climateMult = 1.25;
+
+      let extras_ml = 0;
+      if (els.caffeine.value === 'yes') extras_ml += 200; // optional nudge
+      if (els.illness.value === 'yes') extras_ml += 500;
+
+      const daily_ml = (baseline_ml + exercise_ml + extras_ml) * climateMult;
+
+      // Post workout top-up suggestion (simple): 150% of exercise per-hour portion for glycogen rehydration,
+      // bounded between 300–750 mL
+      const perHour_ml = perMin_ml * 60;
+      const postTop_ml = Math.min(750, Math.max(300, perHour_ml * 0.5));
+
+      // Convert to display units
+      const daily_display = metric ? (daily_ml/1000) : (fromLiters(daily_ml/1000));
+      const perHour_display = metric ? (perHour_ml/1000) : (fromLiters(perHour_ml/1000));
+      const post_display = metric ? (postTop_ml/1000) : (fromLiters(postTop_ml/1000));
+
+      els.dailyL.textContent = formatVol(daily_display);
+      els.perHour.textContent = formatVol(perHour_display);
+      els.postTopup.textContent = formatVol(post_display);
+    }
+
+    function setUnits(isMetric){
+      metric = isMetric;
+      els.btnMetric.classList.toggle('active', metric);
+      els.btnImperial.classList.toggle('active', !metric);
+      els.unitWeight.textContent = metric ? 'kg' : 'lb';
+      els.unitVols.forEach(el => el.textContent = metric ? 'L' : 'fl oz');
+      // adjust sensible defaults when switching units
+      if(!metric){
+        // convert current number to lb if it looks like kg-range
+        const kg = parseFloat(els.weight.value || '70');
+        els.weight.value = Math.round(kg * 2.20462);
+      }else{
+        const lb = parseFloat(els.weight.value || '154');
+        els.weight.value = Math.round(lb / 2.20462);
+      }
+      recalc();
+    }
+
+    // Events
+    ['input','change'].forEach(evt=>{
+      els.weight.addEventListener(evt, recalc);
+      els.minutes.addEventListener(evt, recalc);
+      els.intensity.addEventListener(evt, recalc);
+      els.climate.addEventListener(evt, recalc);
+      els.caffeine.addEventListener(evt, recalc);
+      els.illness.addEventListener(evt, recalc);
+    });
+    els.btnMetric.addEventListener('click', ()=> setUnits(true));
+    els.btnImperial.addEventListener('click', ()=> setUnits(false));
+
+    // init
+    recalc();
+  </script>
+</body>
+</html>
